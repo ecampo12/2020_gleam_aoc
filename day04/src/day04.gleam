@@ -1,8 +1,7 @@
 import gleam/int
 import gleam/io
 import gleam/list
-import gleam/option.{Some}
-import gleam/regexp.{type Match}
+import gleam/regexp.{type Regexp, check}
 import gleam/string
 import simplifile.{read}
 
@@ -17,49 +16,29 @@ pub fn part1(input: String) -> Int {
   |> list.length
 }
 
-fn get_num(result: List(Match)) -> Int {
-  case result {
-    [match] ->
-      case match.submatches {
-        [Some(x)] -> {
-          let assert Ok(n) = int.parse(x)
-          n
-        }
-        _ -> -1
-      }
-    _ -> -1
-  }
+fn build_str(tag: String, start: Int, end: Int) -> String {
+  list.range(start, end)
+  |> list.fold(tag <> ":(", fn(acc, x) {
+    case x == end {
+      True -> acc <> int.to_string(x) <> ")"
+      False -> acc <> int.to_string(x) <> "|"
+    }
+  })
 }
 
-fn validate_range(input: String, field: String, start: Int, end: Int) -> Bool {
-  let assert Ok(re) = regexp.from_string(field <> ":(\\d+)")
-  let year = get_num(regexp.scan(re, input))
-  case get_num(regexp.scan(re, input)) != -1 {
-    True -> start <= year && year <= end
-    False -> False
-  }
+// First attempt parsed feilds that had numbers to check if they were in range.
+// This generates along regex for feilds that a range. It is not any faster
+// than the other implementation, but it has less parsing and looks nicer.
+fn generate_regexp(tag: String, start: Int, end: Int) -> Regexp {
+  let assert Ok(re) = build_str(tag, start, end) |> regexp.from_string
+  re
 }
 
-fn validate_height(input: String) -> Bool {
-  let assert Ok(re) = regexp.from_string("hgt:(\\d+(in|cm))")
-
-  regexp.scan(re, input)
-  case regexp.scan(re, input) {
-    [match] ->
-      case match.submatches {
-        [Some(_), Some(unit)] ->
-          case unit == "cm" {
-            True -> {
-              validate_range(input, "hgt", 150, 193)
-            }
-            False -> {
-              validate_range(input, "hgt", 59, 76)
-            }
-          }
-        _ -> False
-      }
-    _ -> False
-  }
+fn height_regexp() -> Regexp {
+  let cm = build_str("hgt", 150, 193) <> "cm"
+  let in = build_str("hgt", 59, 76) <> "in"
+  let assert Ok(re) = regexp.from_string(cm <> "|" <> in)
+  re
 }
 
 fn validate_rest(input: String) -> Bool {
@@ -71,17 +50,20 @@ fn validate_rest(input: String) -> Bool {
     [match] -> string.length(match.content) == 13
     _ -> False
   }
-  regexp.check(hair_color, input) && regexp.check(eye_color, input) && pid_valid
+  check(hair_color, input) && check(eye_color, input) && pid_valid
 }
 
 pub fn part2(input: String) -> Int {
+  let byr = generate_regexp("byr", 1920, 2002)
+  let iyr = generate_regexp("iyr", 2010, 2020)
+  let eyr = generate_regexp("eyr", 2020, 2030)
+  let hgt = height_regexp()
   string.split(input, "\n\n")
-  |> list.filter(is_valid)
   |> list.filter(fn(x) {
-    validate_range(x, "byr", 1920, 2002)
-    && validate_range(x, "iyr", 2010, 2020)
-    && validate_range(x, "eyr", 2020, 2030)
-    && validate_height(x)
+    check(byr, x)
+    && check(iyr, x)
+    && check(eyr, x)
+    && check(hgt, x)
     && validate_rest(x)
   })
   |> list.length
