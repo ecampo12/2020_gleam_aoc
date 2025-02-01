@@ -61,14 +61,13 @@ fn parse(input: String) -> Grid {
 }
 
 fn check_neighbors(grid: Grid, curr: Point) -> Int {
-  list.map(neighbors, fn(x) {
+  list.fold(neighbors, 0, fn(acc, x) {
     let p = add(curr, x)
     case dict.get(grid.g, p) {
-      Ok(Occupied) -> 1
-      _ -> 0
+      Ok(Occupied) -> acc + 1
+      _ -> acc
     }
   })
-  |> int.sum
 }
 
 fn update_seating(
@@ -122,17 +121,16 @@ pub fn part1(input: String) -> Int {
 fn check_neighbors2(grid: Grid, curr: Point) -> Int {
   // 3 is arbitrary, its just the smallest scale that will work. gets us a ~.5s speedup
   let scales = list.range(1, grid.height / 3)
-  list.map(neighbors, fn(n) {
-    list.fold_until(scales, 0, fn(acc, s) {
+  list.fold(neighbors, 0, fn(acc, n) {
+    list.fold_until(scales, acc, fn(bcc, s) {
       let p = scale(n, s) |> add(curr)
       case dict.get(grid.g, p) {
-        Ok(Occupied) -> list.Stop(1)
-        Ok(Floor) -> list.Continue(acc)
-        Ok(Empty) | Error(_) -> list.Stop(0)
+        Ok(Occupied) -> list.Stop(bcc + 1)
+        Ok(Floor) -> list.Continue(bcc)
+        Ok(Empty) | Error(_) -> list.Stop(bcc)
       }
     })
   })
-  |> int.sum
 }
 
 pub fn part2(input: String) -> Int {
