@@ -17,5 +17,11 @@ F11"
 }
 
 pub fn part2_test() {
-  todo
+  "F10
+N3
+F7
+R90
+F11"
+  |> part2
+  |> should.equal(286)
 }

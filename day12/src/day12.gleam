@@ -1,3 +1,4 @@
+import gleam/float
 import gleam/int
 import gleam/io
 import gleam/list
@@ -103,8 +104,40 @@ pub fn part1(input: String) -> Int {
   int.absolute_value(destination.pos.x) + int.absolute_value(destination.pos.y)
 }
 
+fn rotate2(inst: Instruction, p: Point) -> Point {
+  case inst.action, inst.val == 0 {
+    Left, False ->
+      rotate2(Instruction(..inst, val: inst.val - 90), Point(-p.y, p.x))
+    Right, False ->
+      rotate2(Instruction(..inst, val: inst.val - 90), Point(p.y, -p.x))
+    _, _ -> p
+  }
+}
+
 pub fn part2(input: String) -> Int {
-  todo
+  let #(destination, _) =
+    parse(input)
+    |> list.fold(#(Ship(East, Point(0, 0)), Point(10, 1)), fn(acc, inst) {
+      let #(ship, wp) = acc
+      let new_point = case inst.action {
+        North -> add(Point(0, inst.val), wp)
+        South -> add(Point(0, -inst.val), wp)
+        East -> add(Point(inst.val, 0), wp)
+        West -> add(Point(-inst.val, 0), wp)
+        Left | Right -> rotate2(inst, wp)
+        _ -> wp
+      }
+      let new_ship = case inst.action == Forward {
+        True ->
+          Ship(
+            ..ship,
+            pos: add(ship.pos, Point(wp.x * inst.val, wp.y * inst.val)),
+          )
+        False -> ship
+      }
+      #(new_ship, new_point)
+    })
+  int.absolute_value(destination.pos.x) + int.absolute_value(destination.pos.y)
 }
 
 pub fn main() {
