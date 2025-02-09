@@ -30,51 +30,57 @@ fn parse(input: String) -> #(Dict(String, String), List(String)) {
   #(rules, messages)
 }
 
+// Apprently theres a limit to how long a regex can be, thank fully regexp follows the PCRE spec which allows for recursive patterns
 fn build_rules(rules: Dict(String, String), curr: String, part2: Bool) -> String {
-  case dict.get(rules, curr) {
-    Ok(s) -> {
-      case s == "a" || s == "b" {
-        True -> s
-        False ->
-          {
-            "("
-            <> string.split(s, " ")
-            |> list.map(fn(x) {
-              // io.debug(x)
-              build_rules(rules, x, part2)
-            })
-            |> string.concat
+  case part2, curr {
+    True, "8" -> build_rules(rules, "42", part2) <> "+"
+    True, "11" -> {
+      let rule42 = build_rules(rules, "42", part2)
+      let rule31 = build_rules(rules, "31", part2)
+      "(?P<r42>" <> rule42 <> "(?&r42)?" <> rule31 <> ")"
+    }
+    _, _ -> {
+      case dict.get(rules, curr) {
+        Ok(s) -> {
+          case s == "a" || s == "b" {
+            True -> s
+            False ->
+              "("
+              <> string.split(s, " ")
+              |> list.map(fn(x) { build_rules(rules, x, part2) })
+              |> string.concat
+              <> ")"
           }
-          <> ")"
+        }
+        Error(_) -> "|"
       }
     }
-    Error(_) -> "|"
   }
 }
 
+// Learned that I can use ^ and $ to match the start and end of a string. Makes checking if the whole string matches a regex much easier.
 pub fn part1(input: String) -> Int {
   let #(rules, messages) = parse(input)
-  // build_rules(rules, "0") |> io.debug
   let assert Ok(re) =
-    regexp.from_string("(" <> build_rules(rules, "0", False) <> ")")
+    regexp.from_string("^" <> build_rules(rules, "0", False) <> "$")
   list.fold(messages, 0, fn(acc, message) {
-    // making sure we match the whole string, not just a substring
-    let f =
-      regexp.scan(re, message)
-      |> list.first
-      |> result.unwrap(regexp.Match("", []))
-    case f.content == message {
-      True -> {
-        io.println(message)
-        acc + 1
-      }
+    case regexp.check(re, message) {
+      True -> acc + 1
       False -> acc
     }
   })
 }
 
 pub fn part2(input: String) -> Int {
-  todo
+  let #(rules, messages) = parse(input)
+  let assert Ok(re) =
+    regexp.from_string("^" <> build_rules(rules, "0", True) <> "$")
+  list.fold(messages, 0, fn(acc, message) {
+    case regexp.check(re, message) {
+      True -> acc + 1
+      False -> acc
+    }
+  })
 }
 
 pub fn main() {
