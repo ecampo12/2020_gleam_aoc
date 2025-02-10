@@ -4,7 +4,7 @@ import gleam/list
 import gleam/option.{Some}
 import gleam/regexp
 import gleam/result
-import gleam/set
+import gleam/set.{type Set}
 import gleam/string
 import simplifile.{read}
 
@@ -26,7 +26,7 @@ fn parse(input: String) -> List(#(List(String), List(String))) {
 
 fn possible_allergens(
   foods: List(#(List(String), List(String))),
-) -> Dict(String, set.Set(String)) {
+) -> Dict(String, Set(String)) {
   let all_ingredients =
     list.map(foods, fn(x) { x.0 }) |> list.flatten |> set.from_list
   let all_allergens =
@@ -58,15 +58,53 @@ pub fn part1(input: String) -> Int {
     list.map(foods, fn(x) { x.0 }) |> list.flatten |> list.group(fn(x) { x })
 
   possible_allergens(foods)
-  |> dict.filter(fn(_, v) { set.size(v) == 0 })
+  |> dict.filter(fn(_, v) { set.is_empty(v) })
   |> dict.keys
   |> list.fold(0, fn(acc, x) {
     acc + { dict.get(count, x) |> result.unwrap([]) |> list.length }
   })
 }
 
+fn map_ingredients(
+  foods: Dict(String, Set(String)),
+  ingredients: Set(String),
+  mapped: Dict(String, String),
+) -> Dict(String, String) {
+  case dict.size(mapped) < set.size(ingredients) {
+    False -> mapped
+    True -> {
+      set.fold(ingredients, mapped, fn(acc, a) {
+        let possible =
+          dict.get(foods, a)
+          |> result.unwrap(set.new())
+          |> set.filter(fn(x) { !dict.has_key(acc, x) })
+
+        case set.size(possible) {
+          1 -> {
+            let ingredient =
+              set.to_list(possible) |> list.first |> result.unwrap("")
+            map_ingredients(
+              dict.delete(foods, a),
+              set.delete(ingredients, a),
+              dict.insert(acc, ingredient, a),
+            )
+          }
+          _ -> acc
+        }
+      })
+    }
+  }
+}
+
 pub fn part2(input: String) -> String {
-  todo
+  let foods = parse(input)
+  let all_ingredients =
+    list.map(foods, fn(x) { x.0 }) |> list.flatten |> set.from_list
+  possible_allergens(foods)
+  |> dict.filter(fn(_, v) { !set.is_empty(v) })
+  |> map_ingredients(all_ingredients, dict.new())
+  |> dict.values
+  |> string.join(",")
 }
 
 pub fn main() {
