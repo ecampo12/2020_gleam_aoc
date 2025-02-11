@@ -25,5 +25,19 @@ Player 2:
 }
 
 pub fn part2_test() {
-  todo
+  "Player 1:
+9
+2
+6
+3
+1
+
+Player 2:
+5
+8
+4
+7
+10"
+  |> part2
+  |> should.equal(291)
 }
