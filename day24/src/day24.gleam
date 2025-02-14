@@ -43,7 +43,7 @@ pub fn part1(input: String) -> Int {
     })
   })
   |> dict.fold(0, fn(acc, _k, v) {
-    case v % 2 == 1 {
+    case int.is_odd(v) {
       True -> acc + 1
       False -> acc
     }
@@ -62,7 +62,7 @@ const adj = [
 fn steps(flips: Dict(Point, Int)) -> Dict(Point, Int) {
   let adj_black =
     dict.fold(flips, dict.new(), fn(acc, k, v) {
-      case v % 2 == 0 {
+      case int.is_even(v) {
         True -> acc
         False -> {
           list.fold(adj, acc, fn(bcc, x) {
@@ -78,7 +78,7 @@ fn steps(flips: Dict(Point, Int)) -> Dict(Point, Int) {
     })
 
   dict.fold(flips, dict.new(), fn(acc, k, v) {
-    case v % 2 == 1 {
+    case int.is_odd(v) {
       True -> {
         case
           !{
@@ -95,7 +95,7 @@ fn steps(flips: Dict(Point, Int)) -> Dict(Point, Int) {
     }
   })
   |> dict.fold(adj_black, _, fn(acc, k, v) {
-    case v == 2 && { dict.get(flips, k) |> result.unwrap(0) } % 2 == 0 {
+    case v == 2 && int.is_even(dict.get(flips, k) |> result.unwrap(0)) {
       True -> dict.insert(acc, k, 1)
       False -> acc
     }
@@ -120,7 +120,7 @@ pub fn part2(input: String) -> Int {
   list.range(1, 100)
   |> list.fold(flips, fn(acc, _x) { steps(acc) })
   |> dict.fold(0, fn(acc, _k, v) {
-    case v % 2 == 1 {
+    case int.is_odd(v) {
       True -> acc + 1
       False -> acc
     }
